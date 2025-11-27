@@ -18,6 +18,8 @@ func main() {
 		log.Fatalf("Error loading .env file: %s", err)
 	}
 
+	//TODO: ADD LOGGER
+
 	// Initialize database connection
 	db, close := database.New(
 		os.Getenv("POSTGRES_USER"),

@@ -9,7 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func New(user, password, dbname, port string) (db *gorm.DB, close func() error) {
+type PG struct {
+	*gorm.DB
+}
+
+func New(user, password, dbname, port string) (pg *PG, close func() error) {
 	dsn := fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", user, password, port, dbname)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -22,5 +26,7 @@ func New(user, password, dbname, port string) (db *gorm.DB, close func() error) 
 		log.Fatalf("Failed to get database connection: %s", err)
 	}
 
-	return db, sqlDB.Close
+	return &PG{
+		db,
+	}, sqlDB.Close
 }

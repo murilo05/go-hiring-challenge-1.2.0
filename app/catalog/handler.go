@@ -3,8 +3,10 @@ package catalog
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
-	"github.com/mytheresa/go-hiring-challenge/models"
+	"github.com/mytheresa/go-hiring-challenge/app/models"
+	"github.com/mytheresa/go-hiring-challenge/app/repository"
 )
 
 type Response struct {
@@ -17,23 +19,26 @@ type Product struct {
 }
 
 type CatalogHandler struct {
-	repo *models.ProductsRepository
+	repo *repository.ProductsRepository
 }
 
-func NewCatalogHandler(r *models.ProductsRepository) *CatalogHandler {
+func NewCatalogHandler(r *repository.ProductsRepository) *CatalogHandler {
 	return &CatalogHandler{
 		repo: r,
 	}
 }
 
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	res, err := h.repo.GetAllProducts()
+	ctx := r.Context()
+
+	filters := h.parseFilters(r)
+
+	res, err := h.repo.GetAllProducts(ctx, filters)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Map response
 	products := make([]Product, len(res))
 	for i, p := range res {
 		products[i] = Product{
@@ -42,7 +47,6 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Return the products as a JSON response
 	w.Header().Set("Content-Type", "application/json")
 
 	response := Response{
@@ -52,5 +56,38 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+}
+
+func (h *CatalogHandler) parseFilters(r *http.Request) models.Filters {
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 10
+	offset := 0
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			if l < 1 {
+				limit = 1
+			} else if l > 100 {
+				limit = 100
+			} else {
+				limit = l
+			}
+		}
+	}
+
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil {
+			if o >= 0 {
+				offset = o
+			}
+		}
+	}
+
+	return models.Filters{
+		Limit:  limit,
+		Offset: offset,
 	}
 }
