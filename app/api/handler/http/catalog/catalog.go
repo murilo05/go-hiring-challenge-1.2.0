@@ -6,7 +6,10 @@ import (
 	"strconv"
 
 	"github.com/mytheresa/go-hiring-challenge/app/models"
+
 	"github.com/mytheresa/go-hiring-challenge/app/repository"
+
+	"go.uber.org/zap"
 )
 
 type Response struct {
@@ -19,22 +22,25 @@ type Product struct {
 }
 
 type CatalogHandler struct {
-	repo *repository.ProductsRepository
+	repo   *repository.ProductsRepository
+	logger *zap.SugaredLogger
 }
 
-func NewCatalogHandler(r *repository.ProductsRepository) *CatalogHandler {
+func NewCatalogHandler(r *repository.ProductsRepository, logger *zap.SugaredLogger) *CatalogHandler {
 	return &CatalogHandler{
-		repo: r,
+		repo:   r,
+		logger: logger,
 	}
 }
 
-func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	filters := h.parseFilters(r)
 
 	res, err := h.repo.GetAllProducts(ctx, filters)
 	if err != nil {
+		h.logger.Error("failed to get products: ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -54,6 +60,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("failed to encode response: ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

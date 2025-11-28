@@ -4,21 +4,28 @@ import (
 	"context"
 
 	"github.com/mytheresa/go-hiring-challenge/app/models"
+
+	"go.uber.org/zap"
 )
 
 type ProductsRepository struct {
-	db ProductRepository
+	db     ProductRepository
+	logger *zap.SugaredLogger
 }
 
-func NewProductsRepository(db ProductRepository) *ProductsRepository {
+func NewProductsRepository(db ProductRepository, logger *zap.SugaredLogger) *ProductsRepository {
 	return &ProductsRepository{
-		db: db,
+		db:     db,
+		logger: logger,
 	}
 }
 
 func (r *ProductsRepository) GetAllProducts(ctx context.Context, filters models.Filters) ([]models.Product, error) {
+	r.logger.Info("Repository: fetching products")
+
 	products, err := r.db.List(ctx, filters)
 	if err != nil {
+		r.logger.Error("Repository: failed to fetch products: ", err)
 		return nil, err
 	}
 
