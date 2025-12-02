@@ -22,3 +22,15 @@ func (pg *PG) ListCategory(ctx context.Context) ([]models.Category, error) {
 
 	return categories, nil
 }
+
+func (pg *PG) CreateCategory(ctx context.Context, category *models.Category) (*models.Category, error) {
+	pg.logger.Info("Database: creating category")
+	err := pg.WithContext(ctx).
+		Create(category).Error
+	if err != nil {
+		pg.logger.Error("database failed to create category: ", err)
+		return nil, err
+	}
+
+	return category, nil
+}

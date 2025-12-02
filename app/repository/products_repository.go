@@ -26,7 +26,7 @@ var _ catalog.ProductsRepository = &ProductsRepository{}
 func (r *ProductsRepository) GetAllProducts(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error) {
 	r.logger.Info("Repository: fetching products")
 
-	products, err := r.db.List(ctx, queryParams)
+	products, err := r.db.ListProducts(ctx, queryParams)
 	if err != nil {
 		r.logger.Error("Repository: failed to fetch products: ", err)
 		return nil, err
@@ -38,7 +38,7 @@ func (r *ProductsRepository) GetAllProducts(ctx context.Context, queryParams *mo
 func (r *ProductsRepository) GetProduct(ctx context.Context, code string) (*models.Product, error) {
 	r.logger.Infof("Repository: fetching product with code %s", code)
 
-	product, err := r.db.GetByCode(ctx, code)
+	product, err := r.db.GetProductByCode(ctx, code)
 	if err != nil {
 		r.logger.Error("Repository: failed to fetch product: ", err)
 		return nil, err

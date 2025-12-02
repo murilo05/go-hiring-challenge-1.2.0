@@ -12,7 +12,7 @@ import (
 
 var _ repository.ProductRepository = &PG{}
 
-func (pg *PG) List(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error) {
+func (pg *PG) ListProducts(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error) {
 	pg.logger.Info("Database: listing and counting products")
 	var products []models.Product
 
@@ -41,7 +41,7 @@ func (pg *PG) List(ctx context.Context, queryParams *models.QueryParams) ([]mode
 	return products, nil
 }
 
-func (pg *PG) GetByCode(ctx context.Context, code string) (*models.Product, error) {
+func (pg *PG) GetProductByCode(ctx context.Context, code string) (*models.Product, error) {
 	pg.logger.Info("Database: getting product by code %s", code)
 	var product models.Product
 

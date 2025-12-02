@@ -81,6 +81,12 @@ func main() {
 			http.HandlerFunc(categoryHandler.ListCategories),
 		),
 	)
+	mux.Handle(
+		"POST /categories",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(categoryHandler.CreateCategory),
+		),
+	)
 
 	// Set up the HTTP server
 	srv := &http.Server{

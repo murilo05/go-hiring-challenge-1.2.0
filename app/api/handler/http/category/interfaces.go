@@ -8,4 +8,5 @@ import (
 
 type CategoriesRepository interface {
 	GetAllCategories(ctx context.Context) ([]models.Category, error)
+	CreateCategory(ctx context.Context, category *models.Category) (*models.Category, error)
 }

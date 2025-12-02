@@ -33,3 +33,15 @@ func (r *CategoriesRepository) GetAllCategories(ctx context.Context) ([]models.C
 
 	return categories, nil
 }
+
+func (r *CategoriesRepository) CreateCategory(ctx context.Context, category *models.Category) (*models.Category, error) {
+	r.logger.Info("Repository: creating category")
+
+	createdCategory, err := r.db.CreateCategory(ctx, category)
+	if err != nil {
+		r.logger.Error("Repository: failed to create category: ", err)
+		return nil, err
+	}
+
+	return createdCategory, nil
+}
