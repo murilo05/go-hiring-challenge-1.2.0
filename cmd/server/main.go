@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/catalog"
+	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/category"
 	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/middleware"
 	"github.com/mytheresa/go-hiring-challenge/app/database"
 
@@ -56,7 +57,9 @@ func main() {
 
 	// Initialize handlers
 	productsRepository := repository.NewProductsRepository(db, logger)
+	categoriesRepository := repository.NewCategoriesRepository(db, logger)
 	catalogHandler := catalog.NewCatalogHandler(productsRepository, logger)
+	categoryHandler := category.NewCategoryHandler(categoriesRepository, logger)
 
 	// Set up routing
 	mux := http.NewServeMux()
@@ -70,6 +73,12 @@ func main() {
 		"/catalog/{code}",
 		middleware.LoggingMiddleware(logger)(
 			http.HandlerFunc(catalogHandler.GetProduct),
+		),
+	)
+	mux.Handle(
+		"/categories",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(categoryHandler.ListCategories),
 		),
 	)
 
