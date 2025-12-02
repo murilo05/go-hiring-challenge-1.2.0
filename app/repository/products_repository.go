@@ -23,10 +23,10 @@ func NewProductsRepository(db ProductRepository, logger *zap.SugaredLogger) *Pro
 
 var _ catalog.ProductsRepository = &ProductsRepository{}
 
-func (r *ProductsRepository) GetAllProducts(ctx context.Context, filters *models.Pagination) ([]models.Product, error) {
+func (r *ProductsRepository) GetAllProducts(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error) {
 	r.logger.Info("Repository: fetching products")
 
-	products, err := r.db.List(ctx, filters)
+	products, err := r.db.List(ctx, queryParams)
 	if err != nil {
 		r.logger.Error("Repository: failed to fetch products: ", err)
 		return nil, err

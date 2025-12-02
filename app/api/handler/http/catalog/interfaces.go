@@ -7,5 +7,5 @@ import (
 )
 
 type ProductsRepository interface {
-	GetAllProducts(ctx context.Context, filters *models.Pagination) ([]models.Product, error)
+	GetAllProducts(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error)
 }

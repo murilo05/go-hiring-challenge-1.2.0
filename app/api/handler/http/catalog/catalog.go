@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mytheresa/go-hiring-challenge/app/models"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -41,9 +42,15 @@ func NewCatalogHandler(r ProductsRepository, logger *zap.SugaredLogger) *Catalog
 func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	filters := h.parseFilters(r)
+	paginationParams := h.parsePaginationParams(r)
+	filtersParams := h.parseFilterParams(r)
 
-	res, err := h.repo.GetAllProducts(ctx, &filters)
+	queryParams := models.QueryParams{
+		Pagination: paginationParams,
+		Filters:    filtersParams,
+	}
+
+	res, err := h.repo.GetAllProducts(ctx, &queryParams)
 	if err != nil {
 		h.logger.Error("failed to get products: ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -63,7 +70,7 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 	response := Response{
 		Products:   products,
-		Pagination: Pagination(filters),
+		Pagination: Pagination(queryParams.Pagination),
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -73,7 +80,7 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *CatalogHandler) parseFilters(r *http.Request) models.Pagination {
+func (h *CatalogHandler) parsePaginationParams(r *http.Request) models.Pagination {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
 
@@ -104,4 +111,20 @@ func (h *CatalogHandler) parseFilters(r *http.Request) models.Pagination {
 		Limit:  limit,
 		Offset: offset,
 	}
+}
+
+func (h *CatalogHandler) parseFilterParams(r *http.Request) models.Filters {
+	filters := models.Filters{}
+
+	if categoryCode := r.URL.Query().Get("category"); categoryCode != "" {
+		filters.CategoryCode = categoryCode
+	}
+
+	if priceStr := r.URL.Query().Get("price_less_than"); priceStr != "" {
+		if price, err := decimal.NewFromString(priceStr); err == nil && price.IsPositive() {
+			filters.PriceLessThan = &price
+		}
+	}
+
+	return filters
 }
