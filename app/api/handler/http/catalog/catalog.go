@@ -1,24 +1,31 @@
 package catalog
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
+	httpResponse "github.com/mytheresa/go-hiring-challenge/app/api/handler/http"
 	"github.com/mytheresa/go-hiring-challenge/app/models"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
-type Response struct {
+//TODO: Create DTOs for responses
+
+type ListProductsResponse struct {
 	Products   []Product  `json:"products"`
 	Pagination Pagination `json:"pagination"`
 }
 
+type GetProductResponse struct {
+	Product Product `json:"product"`
+}
+
 type Product struct {
-	Code     string  `json:"code"`
-	Price    float64 `json:"price"`
-	Category string  `json:"category"`
+	Code     string           `json:"code"`
+	Price    float64          `json:"price"`
+	Category string           `json:"category"`
+	Variants []models.Variant `json:"variants,omitempty"`
 }
 
 type Pagination struct {
@@ -53,7 +60,7 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	res, err := h.repo.GetAllProducts(ctx, &queryParams)
 	if err != nil {
 		h.logger.Error("failed to get products: ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httpResponse.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch products")
 		return
 	}
 
@@ -66,18 +73,45 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	response := Response{
+	response := ListProductsResponse{
 		Products:   products,
 		Pagination: Pagination(queryParams.Pagination),
 	}
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("failed to encode response: ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	httpResponse.OKResponse(w, response)
+}
+
+func (h *CatalogHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	code := r.PathValue("code")
+	if code == "" {
+		httpResponse.ErrorResponse(w, http.StatusBadRequest, "Product code is required")
 		return
 	}
+
+	res, err := h.repo.GetProduct(ctx, code)
+	if err != nil {
+		h.logger.Error("failed to get product by code: ", err)
+		httpResponse.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch product")
+		return
+	}
+
+	if res == nil {
+		httpResponse.ErrorResponse(w, http.StatusNotFound, "Product not found")
+		return
+	}
+
+	response := GetProductResponse{
+		Product: Product{
+			Code:     res.Code,
+			Price:    res.Price.InexactFloat64(),
+			Category: res.Category.Name,
+			Variants: res.Variants,
+		},
+	}
+
+	httpResponse.OKResponse(w, response)
 }
 
 func (h *CatalogHandler) parsePaginationParams(r *http.Request) models.Pagination {

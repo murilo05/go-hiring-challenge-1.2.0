@@ -66,6 +66,12 @@ func main() {
 			http.HandlerFunc(catalogHandler.ListProducts),
 		),
 	)
+	mux.Handle(
+		"/catalog/{code}",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(catalogHandler.GetProduct),
+		),
+	)
 
 	// Set up the HTTP server
 	srv := &http.Server{

@@ -34,3 +34,15 @@ func (r *ProductsRepository) GetAllProducts(ctx context.Context, queryParams *mo
 
 	return products, nil
 }
+
+func (r *ProductsRepository) GetProduct(ctx context.Context, code string) (*models.Product, error) {
+	r.logger.Infof("Repository: fetching product with code %s", code)
+
+	product, err := r.db.GetByCode(ctx, code)
+	if err != nil {
+		r.logger.Error("Repository: failed to fetch product: ", err)
+		return nil, err
+	}
+
+	return product, nil
+}
