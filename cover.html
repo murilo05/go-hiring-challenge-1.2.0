@@ -1,0 +1,1040 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>catalog: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/mytheresa/go-hiring-challenge/app/api/handler/http/catalog/catalog.go (96.2%)</option>
+				
+				<option value="file1">github.com/mytheresa/go-hiring-challenge/app/api/handler/http/category/category.go (100.0%)</option>
+				
+				<option value="file2">github.com/mytheresa/go-hiring-challenge/app/api/handler/http/middleware/logging_middleware.go (0.0%)</option>
+				
+				<option value="file3">github.com/mytheresa/go-hiring-challenge/app/api/handler/http/response.go (84.6%)</option>
+				
+				<option value="file4">github.com/mytheresa/go-hiring-challenge/app/database/categories.go (0.0%)</option>
+				
+				<option value="file5">github.com/mytheresa/go-hiring-challenge/app/database/pg.go (0.0%)</option>
+				
+				<option value="file6">github.com/mytheresa/go-hiring-challenge/app/database/products.go (0.0%)</option>
+				
+				<option value="file7">github.com/mytheresa/go-hiring-challenge/app/models/categories.go (100.0%)</option>
+				
+				<option value="file8">github.com/mytheresa/go-hiring-challenge/app/models/products.go (100.0%)</option>
+				
+				<option value="file9">github.com/mytheresa/go-hiring-challenge/app/models/variants.go (100.0%)</option>
+				
+				<option value="file10">github.com/mytheresa/go-hiring-challenge/app/repository/categories_repository.go (100.0%)</option>
+				
+				<option value="file11">github.com/mytheresa/go-hiring-challenge/app/repository/products_repository.go (100.0%)</option>
+				
+				<option value="file12">github.com/mytheresa/go-hiring-challenge/cmd/seed/main.go (0.0%)</option>
+				
+				<option value="file13">github.com/mytheresa/go-hiring-challenge/cmd/server/main.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package catalog
+
+import (
+        "net/http"
+        "strconv"
+
+        httpResponse "github.com/mytheresa/go-hiring-challenge/app/api/handler/http"
+        "github.com/mytheresa/go-hiring-challenge/app/models"
+        "github.com/shopspring/decimal"
+        "go.uber.org/zap"
+)
+
+type ListProductsResponse struct {
+        Products   []Product  `json:"products"`
+        Pagination Pagination `json:"pagination"`
+}
+
+type GetProductResponse struct {
+        Product Product `json:"product"`
+}
+
+type Product struct {
+        Code     string           `json:"code"`
+        Price    float64          `json:"price"`
+        Category string           `json:"category"`
+        Variants []models.Variant `json:"variants,omitempty"`
+}
+
+type Pagination struct {
+        Limit  int   `json:"limit"`
+        Offset int   `json:"offset"`
+        Total  int64 `json:"total"`
+}
+
+type CatalogHandler struct {
+        repo   ProductsRepository
+        logger *zap.SugaredLogger
+}
+
+func NewCatalogHandler(r ProductsRepository, logger *zap.SugaredLogger) *CatalogHandler <span class="cov8" title="1">{
+        return &amp;CatalogHandler{
+                repo:   r,
+                logger: logger,
+        }
+}</span>
+
+// GetProduct godoc
+// @Summary      Get product by code
+// @Description  Get detailed information about a specific product including its variants
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        code  path      string  true  "Product code"  example(PROD001)
+// @Success      200   {object}  httpResponse.response{data=GetProductResponse}  "Product details"
+// @Failure      400   {object}  httpResponse.errorResponse                      "Bad request - product code is required"
+// @Failure      404   {object}  httpResponse.errorResponse                      "Product not found"
+// @Failure      500   {object}  httpResponse.errorResponse                      "Internal server error"
+func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        ctx := r.Context()
+
+        paginationParams := h.parsePaginationParams(r)
+        filtersParams := h.parseFilterParams(r)
+
+        queryParams := models.QueryParams{
+                Pagination: paginationParams,
+                Filters:    filtersParams,
+        }
+
+        res, err := h.repo.GetAllProducts(ctx, &amp;queryParams)
+        if err != nil </span><span class="cov8" title="1">{
+                h.logger.Error("failed to get products: ", err)
+                httpResponse.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch products")
+                return
+        }</span>
+
+        <span class="cov8" title="1">products := make([]Product, len(res))
+        for i, p := range res </span><span class="cov8" title="1">{
+                products[i] = Product{
+                        Code:     p.Code,
+                        Price:    p.Price.InexactFloat64(),
+                        Category: p.Category.Name,
+                }
+        }</span>
+
+        <span class="cov8" title="1">response := ListProductsResponse{
+                Products:   products,
+                Pagination: Pagination(queryParams.Pagination),
+        }
+
+        httpResponse.OKResponse(w, response)</span>
+}
+
+// GetProduct godoc
+// @Summary      Get product by code
+// @Description  Get detailed information about a specific product including its variants
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        code  path      string  true  "Product code"  example(PROD001)
+// @Success      200   {object}  httpResponse.response{data=GetProductResponse}  "Product details"
+// @Failure      400   {object}  httpResponse.errorResponse                      "Bad request - product code is required"
+// @Failure      404   {object}  httpResponse.errorResponse                      "Product not found"
+// @Failure      500   {object}  httpResponse.errorResponse                      "Internal server error"
+// @Router       /products/{code} [get]
+func (h *CatalogHandler) GetProduct(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        ctx := r.Context()
+
+        code := r.PathValue("code")
+        if code == "" </span><span class="cov8" title="1">{
+                httpResponse.ErrorResponse(w, http.StatusBadRequest, "Product code is required")
+                return
+        }</span>
+
+        <span class="cov8" title="1">res, err := h.repo.GetProduct(ctx, code)
+        if err != nil </span><span class="cov8" title="1">{
+                h.logger.Error("failed to get product by code: ", err)
+                httpResponse.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch product")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if res == nil </span><span class="cov8" title="1">{
+                httpResponse.ErrorResponse(w, http.StatusNotFound, "Product not found")
+                return
+        }</span>
+
+        <span class="cov8" title="1">response := GetProductResponse{
+                Product: Product{
+                        Code:     res.Code,
+                        Price:    res.Price.InexactFloat64(),
+                        Category: res.Category.Name,
+                        Variants: res.Variants,
+                },
+        }
+
+        httpResponse.OKResponse(w, response)</span>
+}
+
+func (h *CatalogHandler) parsePaginationParams(r *http.Request) models.Pagination <span class="cov8" title="1">{
+        limitStr := r.URL.Query().Get("limit")
+        offsetStr := r.URL.Query().Get("offset")
+
+        limit := 10
+        offset := 0
+
+        if limitStr != "" </span><span class="cov8" title="1">{
+                if l, err := strconv.Atoi(limitStr); err == nil </span><span class="cov8" title="1">{
+                        if l &lt; 1 </span><span class="cov0" title="0">{
+                                limit = 1
+                        }</span> else<span class="cov8" title="1"> if l &gt; 100 </span><span class="cov0" title="0">{
+                                limit = 100
+                        }</span> else<span class="cov8" title="1"> {
+                                limit = l
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">if offsetStr != "" </span><span class="cov8" title="1">{
+                if o, err := strconv.Atoi(offsetStr); err == nil </span><span class="cov8" title="1">{
+                        if o &gt;= 0 </span><span class="cov8" title="1">{
+                                offset = o
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">return models.Pagination{
+                Limit:  limit,
+                Offset: offset,
+        }</span>
+}
+
+func (h *CatalogHandler) parseFilterParams(r *http.Request) models.Filters <span class="cov8" title="1">{
+        filters := models.Filters{}
+
+        if categoryCode := r.URL.Query().Get("category"); categoryCode != "" </span><span class="cov8" title="1">{
+                filters.CategoryCode = categoryCode
+        }</span>
+
+        <span class="cov8" title="1">if priceStr := r.URL.Query().Get("price_less_than"); priceStr != "" </span><span class="cov8" title="1">{
+                if price, err := decimal.NewFromString(priceStr); err == nil &amp;&amp; price.IsPositive() </span><span class="cov8" title="1">{
+                        filters.PriceLessThan = &amp;price
+                }</span>
+        }
+
+        <span class="cov8" title="1">return filters</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package category
+
+import (
+        "encoding/json"
+        "net/http"
+
+        httpResponse "github.com/mytheresa/go-hiring-challenge/app/api/handler/http"
+        "github.com/mytheresa/go-hiring-challenge/app/models"
+        "go.uber.org/zap"
+)
+
+type Category struct {
+        ID   uint   `json:"id"`
+        Code string `json:"code"`
+        Name string `json:"name"`
+}
+
+type CreateCategoryRequest struct {
+        Code string `json:"code"`
+        Name string `json:"name"`
+}
+
+type CategoryHandler struct {
+        repo   CategoriesRepository
+        logger *zap.SugaredLogger
+}
+
+func NewCategoryHandler(r CategoriesRepository, logger *zap.SugaredLogger) *CategoryHandler <span class="cov8" title="1">{
+        return &amp;CategoryHandler{
+                repo:   r,
+                logger: logger,
+        }
+}</span>
+
+// ListCategories godoc
+// @Summary      List all categories
+// @Description  Get a list of all available product categories
+// @Tags         categories
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  httpResponse.response{data=[]Category}  "List of categories"
+// @Failure      500  {object}  httpResponse.errorResponse              "Internal server error"
+// @Router       /categories [get]
+func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        ctx := r.Context()
+
+        res, err := h.repo.GetAllCategories(ctx)
+        if err != nil </span><span class="cov8" title="1">{
+                h.logger.Error("failed to get categories: ", err)
+                httpResponse.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch categories")
+                return
+        }</span>
+
+        <span class="cov8" title="1">categories := make([]Category, len(res))
+        for i, c := range res </span><span class="cov8" title="1">{
+                categories[i] = Category{
+                        ID:   c.ID,
+                        Code: c.Code,
+                        Name: c.Name,
+                }
+        }</span>
+
+        <span class="cov8" title="1">httpResponse.OKResponse(w, categories)</span>
+}
+
+// CreateCategory godoc
+// @Summary      Create a new category
+// @Description  Create a new product category with code and name
+// @Tags         categories
+// @Accept       json
+// @Produce      json
+// @Param        request  body      CreateCategoryRequest  true  "Category data"
+// @Success      200      {object}  httpResponse.response{data=Category}  "Category created successfully"
+// @Failure      400      {object}  httpResponse.errorResponse            "Bad request - invalid input or missing fields"
+// @Failure      500      {object}  httpResponse.errorResponse            "Internal server error"
+// @Router       /categories [post]
+func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        ctx := r.Context()
+
+        var req CreateCategoryRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov8" title="1">{
+                h.logger.Error("failed to decode request body: ", err)
+                httpResponse.ErrorResponse(w, http.StatusBadRequest, "Invalid request body")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if req.Code == "" || req.Name == "" </span><span class="cov8" title="1">{
+                httpResponse.ErrorResponse(w, http.StatusBadRequest, "Code and name are required")
+                return
+        }</span>
+
+        <span class="cov8" title="1">category := &amp;models.Category{
+                Code: req.Code,
+                Name: req.Name,
+        }
+
+        savedCategory, err := h.repo.CreateCategory(ctx, category)
+        if err != nil </span><span class="cov8" title="1">{
+                h.logger.Error("failed to create category: ", err)
+                httpResponse.ErrorResponse(w, http.StatusInternalServerError, "Failed to create category")
+                return
+        }</span>
+
+        <span class="cov8" title="1">response := Category{
+                ID:   savedCategory.ID,
+                Code: savedCategory.Code,
+                Name: savedCategory.Name,
+        }
+
+        httpResponse.OKResponse(w, response)</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package middleware
+
+import (
+        "net/http"
+        "time"
+
+        "go.uber.org/zap"
+)
+
+func LoggingMiddleware(logger *zap.SugaredLogger) func(http.Handler) http.Handler <span class="cov0" title="0">{
+        return func(next http.Handler) http.Handler </span><span class="cov0" title="0">{
+                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+
+                        start := time.Now()
+
+                        lrw := &amp;loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+                        next.ServeHTTP(lrw, r)
+
+                        duration := time.Since(start).Milliseconds()
+
+                        logger.Infow("HTTP request",
+                                "method", r.Method,
+                                "path", r.URL.Path,
+                                "query", r.URL.RawQuery,
+                                "status", lrw.statusCode,
+                                "ip", r.RemoteAddr,
+                                "user_agent", r.UserAgent(),
+                                "duration_ms", duration,
+                        )
+                }</span>)
+        }
+}
+
+type loggingResponseWriter struct {
+        http.ResponseWriter
+        statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) <span class="cov0" title="0">{
+        lrw.statusCode = code
+        lrw.ResponseWriter.WriteHeader(code)
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package http
+
+import (
+        "encoding/json"
+        "net/http"
+)
+
+type response struct {
+        Success bool   `json:"success" example:"true"`
+        Message string `json:"message" example:"Success"`
+        Data    any    `json:"data,omitempty"`
+}
+
+type errorResponse struct {
+        Success  bool     `json:"success" example:"false"`
+        Messages []string `json:"messages" example:"Error message 1, Error message 2"`
+}
+
+func OKResponse(w http.ResponseWriter, data any) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        rsp := newResponse(true, "Success", data)
+
+        if err := json.NewEncoder(w).Encode(rsp); err != nil </span><span class="cov8" title="1">{
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+
+}
+
+func ErrorResponse(w http.ResponseWriter, status int, message string) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(status)
+        rsp := errorResponse{
+                Success:  false,
+                Messages: []string{message},
+        }
+
+        if err := json.NewEncoder(w).Encode(rsp); err != nil </span><span class="cov0" title="0">{
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+}
+
+func newResponse(success bool, message string, data any) response <span class="cov8" title="1">{
+        return response{
+                Success: success,
+                Message: message,
+                Data:    data,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package database
+
+import (
+        "context"
+
+        "github.com/mytheresa/go-hiring-challenge/app/models"
+        "github.com/mytheresa/go-hiring-challenge/app/repository"
+)
+
+var _ repository.CategoryRepository = &amp;PG{}
+
+func (pg *PG) ListCategory(ctx context.Context) ([]models.Category, error) <span class="cov0" title="0">{
+        pg.logger.Info("Database: listing categories")
+        var categories []models.Category
+
+        err := pg.WithContext(ctx).
+                Find(&amp;categories).Error
+        if err != nil </span><span class="cov0" title="0">{
+                pg.logger.Error("database failed to list categories: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return categories, nil</span>
+}
+
+func (pg *PG) CreateCategory(ctx context.Context, category *models.Category) (*models.Category, error) <span class="cov0" title="0">{
+        pg.logger.Info("Database: creating category")
+        err := pg.WithContext(ctx).
+                Create(category).Error
+        if err != nil </span><span class="cov0" title="0">{
+                pg.logger.Error("database failed to create category: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return category, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package database
+
+import (
+        "fmt"
+
+        _ "github.com/lib/pq"
+        "go.uber.org/zap"
+        "gorm.io/driver/postgres"
+        "gorm.io/gorm"
+)
+
+type PG struct {
+        *gorm.DB
+        logger *zap.SugaredLogger
+}
+
+func New(user, password, dbname, port string, logger *zap.SugaredLogger) (pg *PG, close func() error) <span class="cov0" title="0">{
+        dsn := fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", user, password, port, dbname)
+
+        db, err := gorm.Open(postgres.Open(dsn), &amp;gorm.Config{})
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Fatalf("failed to connect database: ", err)
+        }</span>
+
+        <span class="cov0" title="0">sqlDB, err := db.DB()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Fatalf("Failed to get database connection: ", err)
+        }</span>
+
+        <span class="cov0" title="0">return &amp;PG{
+                db,
+                logger,
+        }, sqlDB.Close</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package database
+
+import (
+        "context"
+
+        "github.com/mytheresa/go-hiring-challenge/app/models"
+        "github.com/shopspring/decimal"
+        "gorm.io/gorm"
+
+        "github.com/mytheresa/go-hiring-challenge/app/repository"
+)
+
+var _ repository.ProductRepository = &amp;PG{}
+
+func (pg *PG) ListProducts(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error) <span class="cov0" title="0">{
+        pg.logger.Info("Database: listing and counting products")
+        var products []models.Product
+
+        query := pg.Model(&amp;models.Product{})
+
+        if queryParams.Filters.CategoryCode != "" &amp;&amp; queryParams.Filters.PriceLessThan != nil </span><span class="cov0" title="0">{
+                query = pg.createFilteredQuery(queryParams)
+        }</span>
+
+        <span class="cov0" title="0">err := query.Count(&amp;queryParams.Pagination.Total).Error
+        if err != nil </span><span class="cov0" title="0">{
+                pg.logger.Error("database failed to count products: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if err := query.WithContext(ctx).
+                Preload("Variants").
+                Preload("Category").
+                Limit(queryParams.Pagination.Limit).
+                Offset(queryParams.Pagination.Offset).
+                Find(&amp;products).Error; err != nil </span><span class="cov0" title="0">{
+                pg.logger.Info("database failed to list products: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return products, nil</span>
+}
+
+func (pg *PG) GetProductByCode(ctx context.Context, code string) (*models.Product, error) <span class="cov0" title="0">{
+        pg.logger.Info("Database: getting product by code %s", code)
+        var product models.Product
+
+        err := pg.WithContext(ctx).
+                Preload("Variants").
+                Preload("Category").
+                Where("code = ?", code).
+                First(&amp;product).Error
+        if err != nil </span><span class="cov0" title="0">{
+                if err == gorm.ErrRecordNotFound </span><span class="cov0" title="0">{
+                        pg.logger.Warn("product not found with code: ", code)
+                        return nil, nil
+                }</span>
+                <span class="cov0" title="0">pg.logger.Error("database failed to get product: ", err)
+                return nil, err</span>
+        }
+
+        <span class="cov0" title="0">for i := range product.Variants </span><span class="cov0" title="0">{
+                if product.Variants[i].Price.IsZero() || product.Variants[i].Price.Equal(decimal.Zero) </span><span class="cov0" title="0">{
+                        product.Variants[i].Price = product.Price
+                }</span>
+        }
+
+        <span class="cov0" title="0">return &amp;product, nil</span>
+}
+
+func (pg *PG) createFilteredQuery(queryParams *models.QueryParams) *gorm.DB <span class="cov0" title="0">{
+        query := pg.Model(&amp;models.Product{})
+
+        if queryParams.Filters.CategoryCode != "" </span><span class="cov0" title="0">{
+                query = query.Joins("JOIN categories ON products.category_id = categories.id").
+                        Where("categories.code = ?", queryParams.Filters.CategoryCode)
+        }</span>
+
+        <span class="cov0" title="0">if queryParams.Filters.PriceLessThan != nil </span><span class="cov0" title="0">{
+                query = query.Where("products.price &lt; ?", queryParams.Filters.PriceLessThan)
+        }</span>
+
+        <span class="cov0" title="0">return query</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package models
+
+// Category represents a product category.
+type Category struct {
+        ID       uint      `gorm:"primaryKey"`
+        Code     string    `gorm:"uniqueIndex;not null"`
+        Name     string    `gorm:"not null"`
+        Products []Product `gorm:"foreignKey:CategoryID"`
+}
+
+func (c *Category) TableName() string <span class="cov8" title="1">{
+        return "categories"
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package models
+
+import (
+        "github.com/shopspring/decimal"
+)
+
+// Product represents a product in the catalog.
+// It includes a unique code and a price.
+type Product struct {
+        ID         uint            `gorm:"primaryKey"`
+        Code       string          `gorm:"uniqueIndex;not null"`
+        Price      decimal.Decimal `gorm:"type:decimal(10,2);not null"`
+        CategoryID uint            `gorm:"not null"`
+        Category   Category        `gorm:"foreignKey:CategoryID"`
+        Variants   []Variant       `gorm:"foreignKey:ProductID"`
+}
+
+func (p *Product) TableName() string <span class="cov8" title="1">{
+        return "products"
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package models
+
+import (
+        "github.com/shopspring/decimal"
+)
+
+// Variant represents a product variant in the catalog.
+// It includes a unique name, SKU, and an optional price.
+// Variants can be used to represent different configurations or options for a product.
+type Variant struct {
+        ID        uint            `gorm:"primaryKey"`
+        ProductID uint            `gorm:"not null"`
+        Name      string          `gorm:"not null"`
+        SKU       string          `gorm:"uniqueIndex;not null"`
+        Price     decimal.Decimal `gorm:"type:decimal(10,2);null"`
+}
+
+func (v *Variant) TableName() string <span class="cov8" title="1">{
+        return "product_variants"
+}</span>
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package repository
+
+import (
+        "context"
+
+        "github.com/mytheresa/go-hiring-challenge/app/api/handler/http/category"
+        "github.com/mytheresa/go-hiring-challenge/app/models"
+        "go.uber.org/zap"
+)
+
+type CategoriesRepository struct {
+        db     CategoryRepository
+        logger *zap.SugaredLogger
+}
+
+func NewCategoriesRepository(db CategoryRepository, logger *zap.SugaredLogger) *CategoriesRepository <span class="cov8" title="1">{
+        return &amp;CategoriesRepository{
+                db:     db,
+                logger: logger,
+        }
+}</span>
+
+var _ category.CategoriesRepository = &amp;CategoriesRepository{}
+
+func (r *CategoriesRepository) GetAllCategories(ctx context.Context) ([]models.Category, error) <span class="cov8" title="1">{
+        r.logger.Info("Repository: fetching categories")
+
+        categories, err := r.db.ListCategory(ctx)
+        if err != nil </span><span class="cov8" title="1">{
+                r.logger.Error("Repository: failed to fetch categories: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return categories, nil</span>
+}
+
+func (r *CategoriesRepository) CreateCategory(ctx context.Context, category *models.Category) (*models.Category, error) <span class="cov8" title="1">{
+        r.logger.Info("Repository: creating category")
+
+        createdCategory, err := r.db.CreateCategory(ctx, category)
+        if err != nil </span><span class="cov8" title="1">{
+                r.logger.Error("Repository: failed to create category: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return createdCategory, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package repository
+
+import (
+        "context"
+
+        "github.com/mytheresa/go-hiring-challenge/app/api/handler/http/catalog"
+        "github.com/mytheresa/go-hiring-challenge/app/models"
+
+        "go.uber.org/zap"
+)
+
+type ProductsRepository struct {
+        db     ProductRepository
+        logger *zap.SugaredLogger
+}
+
+func NewProductsRepository(db ProductRepository, logger *zap.SugaredLogger) *ProductsRepository <span class="cov8" title="1">{
+        return &amp;ProductsRepository{
+                db:     db,
+                logger: logger,
+        }
+}</span>
+
+var _ catalog.ProductsRepository = &amp;ProductsRepository{}
+
+func (r *ProductsRepository) GetAllProducts(ctx context.Context, queryParams *models.QueryParams) ([]models.Product, error) <span class="cov8" title="1">{
+        r.logger.Info("Repository: fetching products")
+
+        products, err := r.db.ListProducts(ctx, queryParams)
+        if err != nil </span><span class="cov8" title="1">{
+                r.logger.Error("Repository: failed to fetch products: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return products, nil</span>
+}
+
+func (r *ProductsRepository) GetProduct(ctx context.Context, code string) (*models.Product, error) <span class="cov8" title="1">{
+        r.logger.Infof("Repository: fetching product with code %s", code)
+
+        product, err := r.db.GetProductByCode(ctx, code)
+        if err != nil </span><span class="cov8" title="1">{
+                r.logger.Error("Repository: failed to fetch product: ", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return product, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package main
+
+import (
+        "log"
+        "os"
+        "path/filepath"
+        "sort"
+        "strings"
+
+        "github.com/joho/godotenv"
+        "go.uber.org/zap"
+
+        "github.com/mytheresa/go-hiring-challenge/app/database"
+)
+
+func main() <span class="cov0" title="0">{
+        // Load environment variables from .env file
+        if err := godotenv.Load(".env"); err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error loading .env file: %s", err)
+        }</span>
+
+        //Starting Zap Logs - (Sugar is better for performance)
+        <span class="cov0" title="0">var lg *zap.Logger
+        switch os.Getenv("ENVIRONMENT") </span>{
+        case "DEV":<span class="cov0" title="0">
+                lg, _ = zap.NewDevelopment()</span>
+        default:<span class="cov0" title="0">
+                lg, _ = zap.NewProduction()</span>
+        }
+
+        <span class="cov0" title="0">defer lg.Sync()
+        logger := lg.Sugar()
+
+        logger.Info("Starting the application: ", os.Getenv("APP"), "-", os.Getenv("ENVIRONMENT"))
+
+        // Initialize database connection
+        db, close := database.New(
+                os.Getenv("POSTGRES_USER"),
+                os.Getenv("POSTGRES_PASSWORD"),
+                os.Getenv("POSTGRES_DB"),
+                os.Getenv("POSTGRES_PORT"),
+                logger,
+        )
+        defer close()
+
+        dir := os.Getenv("POSTGRES_SQL_DIR")
+        files, err := os.ReadDir(dir)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Fatalf("reading directory failed: %v", err)
+        }</span>
+
+        // Filter and sort .sql files
+        <span class="cov0" title="0">var sqlFiles []os.DirEntry
+        for _, file := range files </span><span class="cov0" title="0">{
+                if !file.IsDir() &amp;&amp; strings.HasSuffix(file.Name(), ".sql") </span><span class="cov0" title="0">{
+                        sqlFiles = append(sqlFiles, file)
+                }</span>
+        }
+        <span class="cov0" title="0">sort.Slice(sqlFiles, func(i, j int) bool </span><span class="cov0" title="0">{
+                return sqlFiles[i].Name() &lt; sqlFiles[j].Name()
+        }</span>)
+
+        <span class="cov0" title="0">for _, file := range sqlFiles </span><span class="cov0" title="0">{
+                path := filepath.Join(dir, file.Name())
+
+                content, err := os.ReadFile(path)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Info("reading file %s failed: %v", file.Name(), err)
+                }</span>
+
+                <span class="cov0" title="0">sql := string(content)
+                if err := db.Exec(sql).Error; err != nil </span><span class="cov0" title="0">{
+                        logger.Info("executing %s failed: %v", file.Name(), err)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">logger.Info("Executed %s successfully", file.Name())</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package main
+
+import (
+        "context"
+        "fmt"
+        "log"
+        "net/http"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/mytheresa/go-hiring-challenge/app/api/handler/http/catalog"
+        "github.com/mytheresa/go-hiring-challenge/app/api/handler/http/category"
+        "github.com/mytheresa/go-hiring-challenge/app/api/handler/http/middleware"
+        "github.com/mytheresa/go-hiring-challenge/app/database"
+
+        "github.com/mytheresa/go-hiring-challenge/app/repository"
+
+        "github.com/joho/godotenv"
+        "go.uber.org/zap"
+)
+
+func main() <span class="cov0" title="0">{
+        // Load environment variables from .env file
+        if err := godotenv.Load(".env"); err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error loading .env file: %s", err)
+        }</span>
+
+        // Starting Logs
+        <span class="cov0" title="0">var lg *zap.Logger
+        switch os.Getenv("ENVIRONMENT") </span>{
+        case "DEV":<span class="cov0" title="0">
+                lg, _ = zap.NewDevelopment()</span>
+        default:<span class="cov0" title="0">
+                lg, _ = zap.NewProduction()</span>
+        }
+
+        <span class="cov0" title="0">defer lg.Sync()
+        logger := lg.Sugar()
+
+        logger.Info("Starting the application: ", os.Getenv("APP"), "-", os.Getenv("ENVIRONMENT"))
+
+        // signal handling for graceful shutdown
+        ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+        defer stop()
+
+        // Initialize database connection
+        db, close := database.New(
+                os.Getenv("POSTGRES_USER"),
+                os.Getenv("POSTGRES_PASSWORD"),
+                os.Getenv("POSTGRES_DB"),
+                os.Getenv("POSTGRES_PORT"),
+                logger,
+        )
+        defer close()
+
+        // Initialize handlers
+        productsRepository := repository.NewProductsRepository(db, logger)
+        categoriesRepository := repository.NewCategoriesRepository(db, logger)
+        catalogHandler := catalog.NewCatalogHandler(productsRepository, logger)
+        categoryHandler := category.NewCategoryHandler(categoriesRepository, logger)
+
+        // Set up routing
+        mux := http.NewServeMux()
+        mux.Handle(
+                "/catalog",
+                middleware.LoggingMiddleware(logger)(
+                        http.HandlerFunc(catalogHandler.ListProducts),
+                ),
+        )
+        mux.Handle(
+                "/catalog/{code}",
+                middleware.LoggingMiddleware(logger)(
+                        http.HandlerFunc(catalogHandler.GetProduct),
+                ),
+        )
+        mux.Handle(
+                "/categories",
+                middleware.LoggingMiddleware(logger)(
+                        http.HandlerFunc(categoryHandler.ListCategories),
+                ),
+        )
+        mux.Handle(
+                "POST /categories",
+                middleware.LoggingMiddleware(logger)(
+                        http.HandlerFunc(categoryHandler.CreateCategory),
+                ),
+        )
+
+        // Set up the HTTP server
+        srv := &amp;http.Server{
+                Addr:    fmt.Sprintf("localhost:%s", os.Getenv("HTTP_PORT")),
+                Handler: mux,
+        }
+
+        // Start the server
+        go func() </span><span class="cov0" title="0">{
+                logger.Info("Starting server on http://", srv.Addr)
+                if err := srv.ListenAndServe(); err != nil &amp;&amp; err != http.ErrServerClosed </span><span class="cov0" title="0">{
+                        logger.Fatalf("Server failed: %s", err)
+                }</span>
+                <span class="cov0" title="0">logger.Info("Server stopped gracefully")</span>
+        }()
+
+        <span class="cov0" title="0">&lt;-ctx.Done()
+        logger.Info("Shutting down server...")
+
+        shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        srv.Shutdown(shutdownCtx)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

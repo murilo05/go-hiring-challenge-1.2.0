@@ -32,6 +32,15 @@ func NewCategoryHandler(r CategoriesRepository, logger *zap.SugaredLogger) *Cate
 	}
 }
 
+// ListCategories godoc
+// @Summary      List all categories
+// @Description  Get a list of all available product categories
+// @Tags         categories
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  httpResponse.response{data=[]Category}  "List of categories"
+// @Failure      500  {object}  httpResponse.errorResponse              "Internal server error"
+// @Router       /categories [get]
 func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -54,6 +63,17 @@ func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request)
 	httpResponse.OKResponse(w, categories)
 }
 
+// CreateCategory godoc
+// @Summary      Create a new category
+// @Description  Create a new product category with code and name
+// @Tags         categories
+// @Accept       json
+// @Produce      json
+// @Param        request  body      CreateCategoryRequest  true  "Category data"
+// @Success      200      {object}  httpResponse.response{data=Category}  "Category created successfully"
+// @Failure      400      {object}  httpResponse.errorResponse            "Bad request - invalid input or missing fields"
+// @Failure      500      {object}  httpResponse.errorResponse            "Internal server error"
+// @Router       /categories [post]
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

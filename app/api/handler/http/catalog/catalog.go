@@ -10,8 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-//TODO: Create DTOs for responses
-
 type ListProductsResponse struct {
 	Products   []Product  `json:"products"`
 	Pagination Pagination `json:"pagination"`
@@ -46,6 +44,17 @@ func NewCatalogHandler(r ProductsRepository, logger *zap.SugaredLogger) *Catalog
 	}
 }
 
+// GetProduct godoc
+// @Summary      Get product by code
+// @Description  Get detailed information about a specific product including its variants
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        code  path      string  true  "Product code"  example(PROD001)
+// @Success      200   {object}  httpResponse.response{data=GetProductResponse}  "Product details"
+// @Failure      400   {object}  httpResponse.errorResponse                      "Bad request - product code is required"
+// @Failure      404   {object}  httpResponse.errorResponse                      "Product not found"
+// @Failure      500   {object}  httpResponse.errorResponse                      "Internal server error"
 func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -81,6 +90,18 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	httpResponse.OKResponse(w, response)
 }
 
+// GetProduct godoc
+// @Summary      Get product by code
+// @Description  Get detailed information about a specific product including its variants
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        code  path      string  true  "Product code"  example(PROD001)
+// @Success      200   {object}  httpResponse.response{data=GetProductResponse}  "Product details"
+// @Failure      400   {object}  httpResponse.errorResponse                      "Bad request - product code is required"
+// @Failure      404   {object}  httpResponse.errorResponse                      "Product not found"
+// @Failure      500   {object}  httpResponse.errorResponse                      "Internal server error"
+// @Router       /products/{code} [get]
 func (h *CatalogHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
