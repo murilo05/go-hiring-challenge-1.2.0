@@ -6,27 +6,32 @@ import (
 	"strconv"
 
 	"github.com/mytheresa/go-hiring-challenge/app/models"
-
-	"github.com/mytheresa/go-hiring-challenge/app/repository"
-
 	"go.uber.org/zap"
 )
 
 type Response struct {
-	Products []Product `json:"products"`
+	Products   []Product  `json:"products"`
+	Pagination Pagination `json:"pagination"`
 }
 
 type Product struct {
-	Code  string  `json:"code"`
-	Price float64 `json:"price"`
+	Code     string  `json:"code"`
+	Price    float64 `json:"price"`
+	Category string  `json:"category"`
+}
+
+type Pagination struct {
+	Limit  int   `json:"limit"`
+	Offset int   `json:"offset"`
+	Total  int64 `json:"total"`
 }
 
 type CatalogHandler struct {
-	repo   *repository.ProductsRepository
+	repo   ProductsRepository
 	logger *zap.SugaredLogger
 }
 
-func NewCatalogHandler(r *repository.ProductsRepository, logger *zap.SugaredLogger) *CatalogHandler {
+func NewCatalogHandler(r ProductsRepository, logger *zap.SugaredLogger) *CatalogHandler {
 	return &CatalogHandler{
 		repo:   r,
 		logger: logger,
@@ -38,7 +43,7 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 	filters := h.parseFilters(r)
 
-	res, err := h.repo.GetAllProducts(ctx, filters)
+	res, err := h.repo.GetAllProducts(ctx, &filters)
 	if err != nil {
 		h.logger.Error("failed to get products: ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -48,15 +53,17 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	products := make([]Product, len(res))
 	for i, p := range res {
 		products[i] = Product{
-			Code:  p.Code,
-			Price: p.Price.InexactFloat64(),
+			Code:     p.Code,
+			Price:    p.Price.InexactFloat64(),
+			Category: p.Category.Name,
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	response := Response{
-		Products: products,
+		Products:   products,
+		Pagination: Pagination(filters),
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -66,7 +73,7 @@ func (h *CatalogHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *CatalogHandler) parseFilters(r *http.Request) models.Filters {
+func (h *CatalogHandler) parseFilters(r *http.Request) models.Pagination {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
 
@@ -93,7 +100,7 @@ func (h *CatalogHandler) parseFilters(r *http.Request) models.Filters {
 		}
 	}
 
-	return models.Filters{
+	return models.Pagination{
 		Limit:  limit,
 		Offset: offset,
 	}

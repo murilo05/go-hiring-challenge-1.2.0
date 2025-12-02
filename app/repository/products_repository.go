@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/catalog"
 	"github.com/mytheresa/go-hiring-challenge/app/models"
 
 	"go.uber.org/zap"
@@ -20,7 +21,9 @@ func NewProductsRepository(db ProductRepository, logger *zap.SugaredLogger) *Pro
 	}
 }
 
-func (r *ProductsRepository) GetAllProducts(ctx context.Context, filters models.Filters) ([]models.Product, error) {
+var _ catalog.ProductsRepository = &ProductsRepository{}
+
+func (r *ProductsRepository) GetAllProducts(ctx context.Context, filters *models.Pagination) ([]models.Product, error) {
 	r.logger.Info("Repository: fetching products")
 
 	products, err := r.db.List(ctx, filters)
