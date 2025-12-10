@@ -8,11 +8,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/catalog"
+	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/category"
+	"github.com/mytheresa/go-hiring-challenge/app/api/handler/http/middleware"
+	"github.com/mytheresa/go-hiring-challenge/app/database"
+
+	"github.com/mytheresa/go-hiring-challenge/app/repository"
 
 	"github.com/joho/godotenv"
-	"github.com/mytheresa/go-hiring-challenge/app/catalog"
-	"github.com/mytheresa/go-hiring-challenge/app/database"
-	"github.com/mytheresa/go-hiring-challenge/models"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -20,6 +26,20 @@ func main() {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatalf("Error loading .env file: %s", err)
 	}
+
+	// Starting Logs
+	var lg *zap.Logger
+	switch os.Getenv("ENVIRONMENT") {
+	case "DEV":
+		lg, _ = zap.NewDevelopment()
+	default:
+		lg, _ = zap.NewProduction()
+	}
+
+	defer lg.Sync()
+	logger := lg.Sugar()
+
+	logger.Info("Starting the application: ", os.Getenv("APP"), "-", os.Getenv("ENVIRONMENT"))
 
 	// signal handling for graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -31,16 +51,42 @@ func main() {
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_DB"),
 		os.Getenv("POSTGRES_PORT"),
+		logger,
 	)
 	defer close()
 
 	// Initialize handlers
-	prodRepo := models.NewProductsRepository(db)
-	cat := catalog.NewCatalogHandler(prodRepo)
+	productsRepository := repository.NewProductsRepository(db, logger)
+	categoriesRepository := repository.NewCategoriesRepository(db, logger)
+	catalogHandler := catalog.NewCatalogHandler(productsRepository, logger)
+	categoryHandler := category.NewCategoryHandler(categoriesRepository, logger)
 
 	// Set up routing
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /catalog", cat.HandleGet)
+	mux.Handle(
+		"/catalog",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(catalogHandler.ListProducts),
+		),
+	)
+	mux.Handle(
+		"/catalog/{code}",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(catalogHandler.GetProduct),
+		),
+	)
+	mux.Handle(
+		"/categories",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(categoryHandler.ListCategories),
+		),
+	)
+	mux.Handle(
+		"POST /categories",
+		middleware.LoggingMiddleware(logger)(
+			http.HandlerFunc(categoryHandler.CreateCategory),
+		),
+	)
 
 	// Set up the HTTP server
 	srv := &http.Server{
@@ -50,16 +96,18 @@ func main() {
 
 	// Start the server
 	go func() {
-		log.Printf("Starting server on http://%s", srv.Addr)
+		logger.Info("Starting server on http://", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %s", err)
+			logger.Fatalf("Server failed: %s", err)
 		}
-
-		log.Println("Server stopped gracefully")
+		logger.Info("Server stopped gracefully")
 	}()
 
 	<-ctx.Done()
-	log.Println("Shutting down server...")
-	srv.Shutdown(ctx)
-	stop()
+	logger.Info("Shutting down server...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	srv.Shutdown(shutdownCtx)
 }
